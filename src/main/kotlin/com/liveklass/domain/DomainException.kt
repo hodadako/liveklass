@@ -1,9 +1,11 @@
 package com.liveklass.domain
 
+const val STATUS_EXCEPTION_PREFIX = "허용되지 않은 상태 변경입니다."
+
 sealed class DomainException(message: String) : RuntimeException(message)
 
 class ClassStatusException(val classId: Long, val currentStatus: ClassStatus, val targetStatus: ClassStatus) : DomainException(
-    "허용되지 않은 상태 변경입니다. classId=$classId, currentStatus=$currentStatus, targetStatus=$targetStatus"
+    STATUS_EXCEPTION_PREFIX + "classId=$classId, currentStatus=$currentStatus, targetStatus=$targetStatus"
 )
 
 class ClassEnrollmentException(val classId: Long, val currentStatus: ClassStatus) :
@@ -16,3 +18,10 @@ class ClassCapacityExceededException(
     val capacity: Long,
     val enrolledCount: Long
 ) : DomainException("강의 정원이 초과되었습니다. classId=$classId, capacity=$capacity, enrolledCount=$enrolledCount")
+
+class EnrollmentStatusException(val enrollmentId: Long, val currentStatus: EnrollmentStatus, val targetStatus: EnrollmentStatus) :
+    DomainException(
+        STATUS_EXCEPTION_PREFIX + "enrollmentId=$enrollmentId, currentStatus=$currentStatus, targetStatus=$targetStatus"
+    )
+
+class EnrollmentCancelException(val enrollmentId: Long) : DomainException("수강 신청 취소 가능 기간이 지났습니다. enrollmentId=$enrollmentId")

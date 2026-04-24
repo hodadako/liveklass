@@ -1,11 +1,11 @@
 package com.liveklass.domain
 
+import com.liveklass.fixture.DomainTestFixture.getTestClass
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.ThrowableAssert.catchThrowable
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.assertAll
-import java.time.LocalDateTime
 import kotlin.test.Test
 
 @DisplayName("강의 도메인 단위 테스트")
@@ -14,14 +14,7 @@ class ClassTest {
 
     @BeforeEach
     fun setUp() {
-        sut = Class.create(
-            "쉽게 시작하는 Kotlin",
-            "처음 배우는 Kotlin",
-            100000,
-            1,
-            LocalDateTime.now(),
-            LocalDateTime.now().plusDays(1)
-        )
+        sut = getTestClass()
     }
 
     @Test
