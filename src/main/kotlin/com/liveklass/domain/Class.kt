@@ -12,18 +12,18 @@ class Class private constructor(
     var title: String,
     @Column
     var description: String,
-    @Column
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     var classStatus: ClassStatus = ClassStatus.DRAFT,
-    @Column
+    @Column(nullable = false)
     var price: Long,
-    @Column
+    @Column(nullable = false)
     var capacity: Long,
-    @Column
+    @Column(nullable = false)
     var enrolledCount: Long = 0L,
-    @Column
+    @Column(nullable = false)
     var startDate: LocalDateTime,
-    @Column
+    @Column(nullable = false)
     var endDate: LocalDateTime
 ) : BaseEntity() {
     companion object {

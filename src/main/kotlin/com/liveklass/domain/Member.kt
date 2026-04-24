@@ -7,9 +7,9 @@ import jakarta.persistence.Enumerated
 
 @Entity
 class Member private constructor(
-    @Column
+    @Column(nullable = false)
     val name: String,
-    @Column
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     val memberRole: MemberRole
 ) : BaseEntity() {

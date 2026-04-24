@@ -1,5 +1,6 @@
 package com.liveklass.domain
 
+import jakarta.persistence.Column
 import jakarta.persistence.EntityListeners
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
@@ -21,6 +22,7 @@ abstract class BaseEntity {
         protected set
 
     @CreatedDate
+    @Column(nullable = false, updatable = false)
     var createdDate: LocalDateTime? = null
         protected set
 

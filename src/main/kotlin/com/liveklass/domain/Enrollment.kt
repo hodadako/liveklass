@@ -7,20 +7,30 @@ import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
+import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
 
 @Entity
+@Table(
+    uniqueConstraints = [
+        UniqueConstraint(
+            name = "uk_enrollment_class_member",
+            columnNames = ["class_id", "member_id"]
+        )
+    ]
+)
 class Enrollment private constructor(
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id")
+    @JoinColumn(name = "class_id", nullable = false, updatable = false)
     val enrolledClass: Class,
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
+    @JoinColumn(name = "member_id", nullable = false, updatable = false)
     val student: Member,
-    @Column
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     var enrollmentStatus: EnrollmentStatus = EnrollmentStatus.PENDING,
-    @Column
+    @Column(nullable = false, updatable = false)
     var requestedDate: LocalDateTime,
     @Column
     var confirmedDate: LocalDateTime? = null,
