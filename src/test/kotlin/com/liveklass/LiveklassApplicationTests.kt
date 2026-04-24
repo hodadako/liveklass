@@ -11,5 +11,4 @@ class LiveklassApplicationTests {
     @Test
     fun contextLoads() {
     }
-
 }
