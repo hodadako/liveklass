@@ -13,6 +13,6 @@ class ClassEnrollmentException(val classId: Long, val currentStatus: ClassStatus
 
 class ClassCapacityExceededException(
     val classId: Long,
-    val capacity: Int,
-    val enrolledCount: Int
+    val capacity: Long,
+    val enrolledCount: Long
 ) : DomainException("강의 정원이 초과되었습니다. classId=$classId, capacity=$capacity, enrolledCount=$enrolledCount")

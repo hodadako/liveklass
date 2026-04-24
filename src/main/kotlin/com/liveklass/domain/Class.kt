@@ -16,22 +16,22 @@ class Class private constructor(
     @Enumerated(EnumType.STRING)
     var classStatus: ClassStatus = ClassStatus.DRAFT,
     @Column
-    var price: Int,
+    var price: Long,
     @Column
-    var capacity: Int,
+    var capacity: Long,
     @Column
-    var enrolledCount: Int = 0,
+    var enrolledCount: Long = 0L,
     @Column
-    val startDate: LocalDateTime,
+    var startDate: LocalDateTime,
     @Column
-    val endDate: LocalDateTime
+    var endDate: LocalDateTime
 ) : BaseEntity() {
     companion object {
         fun create(
             title: String,
             description: String,
-            price: Int,
-            capacity: Int,
+            price: Long,
+            capacity: Long,
             startDate: LocalDateTime,
             endDate: LocalDateTime
         ): Class {
