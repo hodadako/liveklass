@@ -20,6 +20,8 @@ class Class private constructor(
     @Column
     var capacity: Int,
     @Column
+    var enrolledCount: Int = 0,
+    @Column
     val startDate: LocalDateTime,
     @Column
     val endDate: LocalDateTime
@@ -62,5 +64,17 @@ class Class private constructor(
             throw ClassStatusException(id, classStatus, ClassStatus.CLOSED)
         }
         classStatus = ClassStatus.CLOSED
+    }
+
+    fun enroll() {
+        if (classStatus != ClassStatus.OPEN) {
+            throw ClassEnrollmentException(id, classStatus)
+        }
+
+        if (enrolledCount >= capacity) {
+            throw ClassCapacityExceededException(id, capacity, enrolledCount)
+        }
+
+        enrolledCount++
     }
 }
