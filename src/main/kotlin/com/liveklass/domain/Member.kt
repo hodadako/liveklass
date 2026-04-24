@@ -12,4 +12,8 @@ class Member private constructor(
     @Column
     @Enumerated(EnumType.STRING)
     val memberRole: MemberRole
-) : BaseEntity()
+) : BaseEntity() {
+    companion object {
+        fun create(name: String, memberRole: MemberRole): Member = Member(name, memberRole)
+    }
+}
