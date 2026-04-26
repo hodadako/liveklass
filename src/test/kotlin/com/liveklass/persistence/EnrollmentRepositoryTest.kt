@@ -15,16 +15,11 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
 
 @DisplayName("수강 신청 Repository 통합 테스트")
-class EnrollmentRepositoryTest : IntegrationTestSupport() {
-
-    @Autowired
-    private lateinit var sut: EnrollmentRepository
-
-    @Autowired
-    private lateinit var memberRepository: MemberRepository
-
-    @Autowired
-    private lateinit var classRepository: ClassRepository
+class EnrollmentRepositoryTest @Autowired constructor(
+    private val sut: EnrollmentRepository,
+    private val memberRepository: MemberRepository,
+    private val classRepository: ClassRepository
+) : IntegrationTestSupport() {
 
     @Test
     fun `수강 신청을 저장하면 Auditing 필드가 기록되고 id가 생성된다`() {
