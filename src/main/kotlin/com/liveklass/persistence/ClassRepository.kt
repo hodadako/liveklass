@@ -12,5 +12,12 @@ interface ClassRepository : JpaRepository<Class, Long> {
     @Query("SELECT c FROM Class c WHERE c.id = :id")
     fun findByIdForUpdate(id: Long): Class?
 
-    fun findAllByClassStatus(classStatus: ClassStatus): List<Class>
+    @Query(
+        """
+            select c 
+            from Class c
+            where (:status is null or c.classStatus = :status)
+        """
+    )
+    fun findAllByClassStatus(status: ClassStatus?): List<Class>
 }
