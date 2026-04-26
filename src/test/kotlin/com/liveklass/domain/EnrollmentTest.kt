@@ -1,7 +1,7 @@
 package com.liveklass.domain
 
-import com.liveklass.fixture.DomainTestFixture.getTestClass
-import com.liveklass.fixture.DomainTestFixture.getTestMember
+import com.liveklass.fixture.DomainTestFixture.getClassFixture
+import com.liveklass.fixture.DomainTestFixture.getMemberFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.ThrowableAssert.catchThrowable
 import org.junit.jupiter.api.BeforeEach
@@ -19,8 +19,8 @@ class EnrollmentTest {
 
     @BeforeEach
     fun setUp() {
-        enrolledClass = getTestClass()
-        student = getTestMember()
+        enrolledClass = getClassFixture()
+        student = getMemberFixture()
         now = LocalDateTime.of(2026, 4, 4, 12, 10)
         sut = Enrollment.create(enrolledClass, student, now)
     }

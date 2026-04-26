@@ -1,6 +1,6 @@
 package com.liveklass.domain
 
-import com.liveklass.fixture.DomainTestFixture.getTestClass
+import com.liveklass.fixture.DomainTestFixture.getClassFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.ThrowableAssert.catchThrowable
 import org.junit.jupiter.api.BeforeEach
@@ -14,7 +14,7 @@ class ClassTest {
 
     @BeforeEach
     fun setUp() {
-        sut = getTestClass()
+        sut = getClassFixture(1L)
     }
 
     @Test
