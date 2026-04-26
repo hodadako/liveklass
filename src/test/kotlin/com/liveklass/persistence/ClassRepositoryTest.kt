@@ -20,7 +20,7 @@ class ClassRepositoryTest : IntegrationTestSupport() {
     fun `강의를 저장하면 Auditing 필드가 기록되고 id가 생성된다`() {
         val klass = getClassFixture()
 
-        val savedClass = sut.saveAndFlush(klass)
+        val savedClass = sut.save(klass)
 
         assertAll(
             { assertThat(savedClass.id).isNotZero() },
@@ -50,7 +50,7 @@ class ClassRepositoryTest : IntegrationTestSupport() {
     @Test
     @Transactional
     fun `비관적 락을 통해서 강의를 조회할 수 있다`() {
-        val savedClass = sut.saveAndFlush(getClassFixture())
+        val savedClass = sut.save(getClassFixture())
 
         val foundClass = sut.findByIdForUpdate(savedClass.id)
 
