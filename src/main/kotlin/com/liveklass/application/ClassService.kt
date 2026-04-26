@@ -6,7 +6,6 @@ import com.liveklass.dto.CreateClassRequest
 import com.liveklass.dto.FindClassListResponse
 import com.liveklass.dto.FindClassResponse
 import com.liveklass.persistence.ClassRepository
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -37,25 +36,21 @@ class ClassService(
 
     @Transactional
     override fun openClass(classId: Long) {
-        val foundClass = findClassOrThrow(classId)
+        val foundClass = classRepository.findByIdOrThrow(classId)
         foundClass.open()
     }
 
     @Transactional
     override fun closeClass(classId: Long) {
-        val foundClass = findClassOrThrow(classId)
+        val foundClass = classRepository.findByIdOrThrow(classId)
         foundClass.close()
     }
 
     @Transactional(readOnly = true)
-    override fun findClassDetail(classId: Long): FindClassResponse = FindClassResponse.from(findClassOrThrow(classId))
+    override fun findClassDetail(classId: Long): FindClassResponse = FindClassResponse.from(classRepository.findByIdOrThrow(classId))
 
     @Transactional(readOnly = true)
     override fun findClasses(
         status: ClassStatus?
     ): FindClassListResponse = FindClassListResponse.from(classRepository.findAllByClassStatus(status))
-
-    private fun findClassOrThrow(classId: Long): Class {
-        return classRepository.findByIdOrNull(classId) ?: throw EntityNotFoundException(classId, "강의(Class)")
-    }
 }
