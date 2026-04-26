@@ -1,6 +1,7 @@
 package com.liveklass.domain
 
 import jakarta.persistence.Column
+import jakarta.persistence.ConstraintMode
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -22,10 +23,22 @@ import java.time.LocalDateTime
 )
 class Enrollment private constructor(
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id", nullable = false, updatable = false)
+    @JoinColumn(
+        name = "class_id",
+        nullable = false,
+        updatable = false,
+        foreignKey = jakarta.persistence.ForeignKey(
+            ConstraintMode.NO_CONSTRAINT
+        )
+    )
     val enrolledClass: Class,
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false, updatable = false)
+    @JoinColumn(
+        name = "member_id",
+        nullable = false,
+        updatable = false,
+        foreignKey = jakarta.persistence.ForeignKey(ConstraintMode.NO_CONSTRAINT)
+    )
     val student: Member,
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
