@@ -2,6 +2,7 @@ package com.liveklass.fixture
 
 import com.liveklass.domain.Class
 import com.liveklass.domain.Enrollment
+import com.liveklass.domain.EnrollmentTicket
 import com.liveklass.domain.Member
 import com.liveklass.domain.MemberRole
 import java.time.LocalDateTime
@@ -130,5 +131,18 @@ object DomainTestFixture {
         enrolledClass,
         student,
         BASE_TIME
+    )
+
+    fun getEnrollmentTicketFixture(
+        classId: Long = 1L,
+        memberId: Long = 1L
+    ): EnrollmentTicket = EnrollmentTicket.create(classId, memberId)
+
+    fun getEnrollmentTicketListFixture(): List<EnrollmentTicket> = listOf(
+        getEnrollmentTicketFixture(1L, 1L),
+        getEnrollmentTicketFixture(1L, 2L),
+        getEnrollmentTicketFixture(2L, 3L),
+        getEnrollmentTicketFixture(2L, 4L),
+        getEnrollmentTicketFixture(3L, 5L)
     )
 }
