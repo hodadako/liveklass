@@ -4,8 +4,8 @@ import org.springframework.stereotype.Component
 import kotlin.random.Random
 
 interface PaymentClient {
-    fun requestPayment()
-    fun cancelPayment()
+    fun requestPayment(enrollmentId: Long)
+    fun cancelPayment(enrollmentId: Long)
 }
 
 @Component
@@ -15,11 +15,11 @@ class SimplePaymentClient(
     private val minDelay = 500L
     private val maxDelay = 2000L
 
-    override fun requestPayment() {
+    override fun requestPayment(enrollmentId: Long) {
         simulateDelay()
     }
 
-    override fun cancelPayment() {
+    override fun cancelPayment(enrollmentId: Long) {
         simulateDelay()
     }
 
