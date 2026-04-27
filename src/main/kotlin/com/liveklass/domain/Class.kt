@@ -66,15 +66,27 @@ class Class private constructor(
         classStatus = ClassStatus.CLOSED
     }
 
-    fun enroll() {
+    fun validateEnrollmentRequest() {
         if (classStatus != ClassStatus.OPEN) {
             throw ClassEnrollmentException(id, classStatus)
         }
+    }
+
+    fun confirmEnrollment() {
+        validateEnrollmentRequest()
 
         if (enrolledCount >= capacity) {
             throw ClassCapacityExceededException(id, capacity, enrolledCount)
         }
 
         enrolledCount++
+    }
+
+    fun cancelEnrollment() {
+        if (enrolledCount <= 0) {
+            throw ClassEnrollmentCancelException(id, enrolledCount)
+        }
+
+        enrolledCount--
     }
 }
