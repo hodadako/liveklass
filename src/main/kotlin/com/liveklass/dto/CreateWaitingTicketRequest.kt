@@ -1,5 +1,5 @@
 package com.liveklass.dto
 
-data class FindMemberListResponse(
+data class CreateWaitingTicketRequest(
     val memberId: Long
 )

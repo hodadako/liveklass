@@ -30,7 +30,8 @@ class EnrollmentRequestService(
         val now = LocalDateTime.now()
         val foundClass = classRepository.findByIdOrThrow(classId)
         val foundMember = memberRepository.findByIdOrThrow(memberId)
-        val foundTicket = enrollmentTicketRepository.findByIdOrThrow(ticketId)
+        val foundTicket = enrollmentTicketRepository.findByIdForUpdate(ticketId)
+            ?: throw EntityNotFoundException(ticketId, "EnrollmentTicket")
 
         if (foundTicket.classId != foundClass.id || foundTicket.memberId != memberId) {
             throw InvalidTicketException(classId, memberId, ticketId)

@@ -2,12 +2,18 @@ package com.liveklass.persistence
 
 import com.liveklass.domain.EnrollmentTicket
 import com.liveklass.domain.EnrollmentTicketStatus
+import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 
 interface EnrollmentTicketRepository : JpaRepository<EnrollmentTicket, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select et from EnrollmentTicket et where et.id = :id")
+    fun findByIdForUpdate(id: Long): EnrollmentTicket?
+
     fun findByClassIdAndMemberId(
         classId: Long,
         memberId: Long

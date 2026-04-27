@@ -3,6 +3,7 @@ package com.liveklass.application
 import com.liveklass.IntegrationTestSupport
 import com.liveklass.domain.Enrollment
 import com.liveklass.domain.EnrollmentStatus
+import com.liveklass.domain.EnrollmentStatusException
 import com.liveklass.domain.Member
 import com.liveklass.domain.MemberRole
 import com.liveklass.fixture.DomainTestFixture.getClassFixture
@@ -10,6 +11,7 @@ import com.liveklass.fixture.DomainTestFixture.getEnrollmentFixture
 import com.liveklass.persistence.ClassRepository
 import com.liveklass.persistence.EnrollmentRepository
 import com.liveklass.persistence.MemberRepository
+import com.liveklass.runConcurrently
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.ThrowableAssert.catchThrowable
 import org.junit.jupiter.api.DisplayName
@@ -100,6 +102,42 @@ class EnrollmentServiceTest @Autowired constructor(
     }
 
     @Test
+    fun `정원이 1명인 강의에서 동시에 두 건을 확정해도 한 명만 확정된다`() {
+        val klass = classRepository.save(getClassFixture(1L).apply { open() })
+        val firstEnrollment = enrollmentRepository.save(
+            getEnrollmentFixture(
+                klass,
+                memberRepository.save(Member.create("student-1", MemberRole.STUDENT))
+            )
+        )
+        val secondEnrollment = enrollmentRepository.save(
+            getEnrollmentFixture(
+                klass,
+                memberRepository.save(Member.create("student-2", MemberRole.STUDENT))
+            )
+        )
+
+        val results = runConcurrently(
+            { sut.completeEnrollment(firstEnrollment.id) },
+            { sut.completeEnrollment(secondEnrollment.id) }
+        )
+
+        val foundClass = classRepository.findByIdOrThrow(klass.id)
+        val foundEnrollments = listOf(
+            enrollmentRepository.findByIdOrThrow(firstEnrollment.id),
+            enrollmentRepository.findByIdOrThrow(secondEnrollment.id)
+        )
+
+        assertAll(
+            { assertThat(results.count { it.isSuccess }).isEqualTo(1) },
+            { assertThat(results.mapNotNull { it.exceptionOrNull() }).hasSize(1) },
+            { assertThat(foundClass.enrolledCount).isEqualTo(1L) },
+            { assertThat(foundEnrollments.count { it.enrollmentStatus == EnrollmentStatus.CONFIRMED }).isEqualTo(1) },
+            { assertThat(foundEnrollments.count { it.enrollmentStatus == EnrollmentStatus.PENDING }).isEqualTo(1) }
+        )
+    }
+
+    @Test
     fun `본인 수강 신청이 아니면 취소할 수 없다`() {
         val savedEnrollment = saveEnrollment("student")
         val otherMember = memberRepository.save(Member.create("other-student", MemberRole.STUDENT))
@@ -111,6 +149,28 @@ class EnrollmentServiceTest @Autowired constructor(
             { assertThat(exception).isInstanceOf(EnrollmentAccessDeniedException::class.java) },
             { assertThat(foundEnrollment.enrollmentStatus).isEqualTo(EnrollmentStatus.PENDING) },
             { assertThat(foundEnrollment.cancelledDate).isNull() }
+        )
+    }
+
+    @Test
+    fun `같은 확정 수강 신청을 동시에 두 번 취소해도 좌석은 한 번만 반납된다`() {
+        val savedEnrollment = saveEnrollment("student")
+        sut.completeEnrollment(savedEnrollment.id)
+
+        val results = runConcurrently(
+            { sut.cancelEnrollment(savedEnrollment.id, savedEnrollment.student.id) },
+            { sut.cancelEnrollment(savedEnrollment.id, savedEnrollment.student.id) }
+        )
+
+        val foundEnrollment = enrollmentRepository.findByIdOrThrow(savedEnrollment.id)
+        val foundClass = classRepository.findByIdOrThrow(savedEnrollment.enrolledClass.id)
+
+        assertAll(
+            { assertThat(results.count { it.isSuccess }).isEqualTo(1) },
+            { assertThat(results.mapNotNull { it.exceptionOrNull() }).hasSize(1) },
+            { assertThat(results.mapNotNull { it.exceptionOrNull() }.first()).isInstanceOf(EnrollmentStatusException::class.java) },
+            { assertThat(foundEnrollment.enrollmentStatus).isEqualTo(EnrollmentStatus.CANCELLED) },
+            { assertThat(foundClass.enrolledCount).isEqualTo(0L) }
         )
     }
 
