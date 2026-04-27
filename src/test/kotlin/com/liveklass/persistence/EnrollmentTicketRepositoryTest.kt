@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.PageRequest
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @DisplayName("수강 대기열 티켓 Repository 통합 테스트")
@@ -30,16 +31,17 @@ class EnrollmentTicketRepositoryTest @Autowired constructor(
     }
 
     @Test
+    @Transactional
     fun `강의 아이디와 회원 아이디로 수강 대기열 티켓을 조회할 수 있다`() {
         val savedTicket = sut.save(getEnrollmentTicketFixture(10L, 20L))
         sut.save(getEnrollmentTicketFixture(10L, 21L))
 
-        val foundTicket = requireNotNull(sut.findByClassIdAndMemberId(10L, 20L))
+        val foundTicket = sut.findByClassIdAndMemberId(10L, 20L)
 
         assertAll(
-            { assertThat(foundTicket.id).isEqualTo(savedTicket.id) },
-            { assertThat(foundTicket.classId).isEqualTo(10L) },
-            { assertThat(foundTicket.memberId).isEqualTo(20L) }
+            { assertThat(foundTicket!!.id).isEqualTo(savedTicket.id) },
+            { assertThat(foundTicket!!.classId).isEqualTo(10L) },
+            { assertThat(foundTicket!!.memberId).isEqualTo(20L) }
         )
     }
 

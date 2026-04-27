@@ -31,20 +31,18 @@ class EnrollmentTicketService(
         classId: Long,
         memberId: Long
     ): EnrollmentTicket {
-        val existingTicket = enrollmentTicketRepository.findByClassIdAndMemberId(
-            classId = classId,
-            memberId = memberId
-        )
+        val tickets = enrollmentTicketRepository.findAllByClassIdAndMemberId(classId, memberId)
 
-        if (existingTicket != null) {
-            return existingTicket
+        val activeTicket = tickets.firstOrNull {
+            it.status == EnrollmentTicketStatus.WAITING || it.status == EnrollmentTicketStatus.ALLOWED
+        }
+
+        if (activeTicket != null) {
+            return activeTicket
         }
 
         return enrollmentTicketRepository.save(
-            EnrollmentTicket.create(
-                classId = classId,
-                memberId = memberId
-            )
+            EnrollmentTicket.create(classId, memberId)
         )
     }
 

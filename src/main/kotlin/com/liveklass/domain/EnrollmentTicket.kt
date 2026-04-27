@@ -4,16 +4,9 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
-import jakarta.persistence.Table
-import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
 
 @Entity
-@Table(
-    uniqueConstraints = [
-        UniqueConstraint(columnNames = ["classId", "memberId"])
-    ]
-)
 class EnrollmentTicket private constructor(
     @Column(nullable = false)
     val classId: Long,

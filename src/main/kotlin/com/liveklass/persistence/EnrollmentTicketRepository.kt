@@ -19,6 +19,11 @@ interface EnrollmentTicketRepository : JpaRepository<EnrollmentTicket, Long> {
         memberId: Long
     ): EnrollmentTicket?
 
+    fun findAllByClassIdAndMemberId(
+        classId: Long,
+        memberId: Long
+    ): List<EnrollmentTicket>
+
     fun countByStatus(status: EnrollmentTicketStatus): Long
 
     @Query(

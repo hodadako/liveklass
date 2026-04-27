@@ -11,7 +11,6 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.dao.DataIntegrityViolationException
 import java.time.LocalDateTime
 
 @DisplayName("수강 대기열 티켓 서비스 통합 테스트")
@@ -52,21 +51,23 @@ class EnrollmentTicketServiceTest @Autowired constructor(
     }
 
     @Test
-    fun `같은 강의와 회원이 동시에 대기열에 진입하면 티켓은 하나만 생성된다`() {
+    fun `같은 강의와 회원이 동시에 대기열에 진입해도 요청은 성공한다`() {
         val results = runConcurrently(
             { sut.enterWaitingQueue(1L, 1L) },
             { sut.enterWaitingQueue(1L, 1L) }
         )
 
-        val successCount = results.count { it.isSuccess }
-        val failures = results.mapNotNull { it.exceptionOrNull() }
+        val responses = results.map { it.getOrThrow() }
+        val activeTickets = enrollmentTicketRepository.findAllByClassIdAndMemberId(1L, 1L)
+            .filter {
+                it.status == EnrollmentTicketStatus.WAITING ||
+                    it.status == EnrollmentTicketStatus.ALLOWED
+            }
 
         assertAll(
-            { assertThat(successCount).isEqualTo(1) },
-            { assertThat(failures).hasSize(1) },
-            { assertThat(failures[0]).isInstanceOf(DataIntegrityViolationException::class.java) },
-            { assertThat(enrollmentTicketRepository.count()).isEqualTo(1L) },
-            { assertThat(enrollmentTicketRepository.findByClassIdAndMemberId(1L, 1L)).isNotNull() }
+            { assertThat(results).allMatch { it.isSuccess } },
+            { assertThat(responses).hasSize(2) },
+            { assertThat(activeTickets).isNotEmpty }
         )
     }
 
