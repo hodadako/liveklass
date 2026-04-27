@@ -3,6 +3,9 @@ package com.liveklass.application
 import com.liveklass.domain.EnrollmentTicket
 import com.liveklass.domain.EnrollmentTicketStatus
 import com.liveklass.persistence.EnrollmentTicketRepository
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -10,7 +13,6 @@ import org.junit.jupiter.api.assertAll
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
-import java.lang.reflect.Proxy
 
 @DisplayName("대기열 스케줄러 단위 테스트")
 class WaitingQueueSchedulerTest {
@@ -24,13 +26,14 @@ class WaitingQueueSchedulerTest {
         val emitter = RecordingWaitingQueueEmitter()
         val repository = repositoryOf(waiting = waitingTickets)
         val scheduler = SimpleWaitingQueueScheduler(
-            waitingQueueService = WaitingQueueService(repository.proxy),
+            waitingQueueService = WaitingQueueService(repository),
             waitingQueueEmitter = emitter
         )
 
         scheduler.processTicketsAndSend()
 
-        assertThat(emitter.allowedTicketIds).containsExactlyElementsOf(waitingTickets.map { it.id })
+        assertThat(emitter.allowedTicketIds)
+            .containsExactlyElementsOf(waitingTickets.map { it.id })
     }
 
     @Test
@@ -42,15 +45,26 @@ class WaitingQueueSchedulerTest {
         val emitter = RecordingWaitingQueueEmitter()
         val repository = repositoryOf(expired = expiredTickets)
         val scheduler = SimpleWaitingQueueScheduler(
-            waitingQueueService = WaitingQueueService(repository.proxy),
+            waitingQueueService = WaitingQueueService(repository),
             waitingQueueEmitter = emitter
         )
 
         scheduler.deleteExpiredTickets()
 
         assertAll(
-            { assertThat(emitter.expiredTicketIds).containsExactlyElementsOf(expiredTickets.map { it.id }) },
-            { assertThat(repository.deletedTicketIds).containsExactlyElementsOf(expiredTickets.map { it.id }) }
+            {
+                assertThat(emitter.expiredTicketIds)
+                    .containsExactlyElementsOf(expiredTickets.map { it.id })
+            },
+            {
+                verify(exactly = 1) {
+                    repository.deleteAll(
+                        match<Iterable<EnrollmentTicket>> {
+                            it.map { ticket -> ticket.id } == expiredTickets.map { ticket -> ticket.id }
+                        }
+                    )
+                }
+            }
         )
     }
 
@@ -74,15 +88,47 @@ class WaitingQueueSchedulerTest {
     private fun repositoryOf(
         waiting: List<EnrollmentTicket> = emptyList(),
         expired: List<EnrollmentTicket> = emptyList()
-    ): RecordingEnrollmentTicketRepository {
-        return RecordingEnrollmentTicketRepository(waiting, expired)
+    ): EnrollmentTicketRepository {
+        return mockk {
+            every {
+                findAllByStatus(EnrollmentTicketStatus.WAITING, any())
+            } answers {
+                val pageable = secondArg<Pageable>()
+                pageOf(waiting, pageable)
+            }
+
+            every {
+                findAllByStatus(EnrollmentTicketStatus.EXPIRED, any())
+            } answers {
+                val pageable = secondArg<Pageable>()
+                pageOf(expired, pageable)
+            }
+
+            every {
+                deleteAll(any<Iterable<EnrollmentTicket>>())
+            } returns Unit
+        }
+    }
+
+    private fun pageOf(
+        tickets: List<EnrollmentTicket>,
+        pageable: Pageable
+    ): Page<EnrollmentTicket> {
+        return PageImpl(
+            tickets.take(pageable.pageSize),
+            pageable,
+            tickets.size.toLong()
+        )
     }
 
     private class RecordingWaitingQueueEmitter : WaitingQueueEmitter {
         val allowedTicketIds = mutableListOf<Long>()
         val expiredTicketIds = mutableListOf<Long>()
 
-        override fun save(ticketId: Long, emitter: org.springframework.web.servlet.mvc.method.annotation.SseEmitter) = Unit
+        override fun save(
+            ticketId: Long,
+            emitter: org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+        ) = Unit
 
         override fun sendAllowed(ticketId: Long) {
             allowedTicketIds += ticketId
@@ -93,42 +139,5 @@ class WaitingQueueSchedulerTest {
         }
 
         override fun complete(ticketId: Long) = Unit
-    }
-
-    private class RecordingEnrollmentTicketRepository(
-        private val waitingTickets: List<EnrollmentTicket>,
-        private val expiredTickets: List<EnrollmentTicket>
-    ) {
-        val deletedTicketIds = mutableListOf<Long>()
-
-        val proxy: EnrollmentTicketRepository = Proxy.newProxyInstance(
-            EnrollmentTicketRepository::class.java.classLoader,
-            arrayOf(EnrollmentTicketRepository::class.java)
-        ) { _, method, args ->
-            when (method.name) {
-                "findAllByStatus" -> {
-                    val status = args[0] as EnrollmentTicketStatus
-                    val pageable = args[1] as Pageable
-                    pageOf(status, pageable)
-                }
-
-                "deleteAll" -> {
-                    val tickets = args[0] as Iterable<*>
-                    deletedTicketIds += tickets.filterIsInstance<EnrollmentTicket>().map { it.id }
-                    Unit
-                }
-
-                else -> throw UnsupportedOperationException("Unsupported method: ${method.name}")
-            }
-        } as EnrollmentTicketRepository
-
-        private fun pageOf(status: EnrollmentTicketStatus, pageable: Pageable): Page<EnrollmentTicket> {
-            val source = when (status) {
-                EnrollmentTicketStatus.WAITING -> waitingTickets
-                EnrollmentTicketStatus.EXPIRED -> expiredTickets
-                else -> emptyList()
-            }
-            return PageImpl(source.take(pageable.pageSize), pageable, source.size.toLong())
-        }
     }
 }
