@@ -1,6 +1,9 @@
 package com.liveklass.persistence
 
 import com.liveklass.IntegrationTestSupport
+import com.liveklass.domain.EnrollmentStatus
+import com.liveklass.domain.Member
+import com.liveklass.domain.MemberRole
 import com.liveklass.fixture.DomainTestFixture.getClassFixture
 import com.liveklass.fixture.DomainTestFixture.getClassListFixture
 import com.liveklass.fixture.DomainTestFixture.getEnrollmentFixture
@@ -70,6 +73,35 @@ class EnrollmentRepositoryTest @Autowired constructor(
             { assertThat(page.totalElements).isEqualTo(6) },
             { assertThat(page.content).allMatch { it.enrolledClass.id == classId } },
             { assertThat(page.content).allMatch { it.student.id != 0L } }
+        )
+    }
+
+    @Test
+    fun `강의 아이디와 상태를 통해서 확정된 수강 신청 목록만 페이징 조회할 수 있다`() {
+        val klass = classRepository.save(getClassFixture().apply { open() })
+        val confirmedStudent = memberRepository.save(getMemberFixture())
+        val pendingStudent = memberRepository.save(Member.create("pending-student", MemberRole.STUDENT))
+        val cancelledStudent = memberRepository.save(Member.create("cancelled-student", MemberRole.STUDENT))
+
+        val confirmedEnrollment = sut.save(
+            getEnrollmentFixture(klass, confirmedStudent).apply {
+                confirm(requestedDate.plusDays(1))
+            }
+        )
+        sut.save(getEnrollmentFixture(klass, pendingStudent))
+        sut.save(
+            getEnrollmentFixture(klass, cancelledStudent).apply {
+                cancel(requestedDate.plusDays(1))
+            }
+        )
+
+        val page = sut.findAllByClassAndStatus(klass.id, EnrollmentStatus.CONFIRMED, PageRequest.of(0, 10))
+
+        assertAll(
+            { assertThat(page.content).hasSize(1) },
+            { assertThat(page.totalElements).isEqualTo(1L) },
+            { assertThat(page.content[0].id).isEqualTo(confirmedEnrollment.id) },
+            { assertThat(page.content).allMatch { it.enrollmentStatus == EnrollmentStatus.CONFIRMED } }
         )
     }
 }

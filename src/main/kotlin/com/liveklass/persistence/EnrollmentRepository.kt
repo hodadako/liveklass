@@ -1,6 +1,7 @@
 package com.liveklass.persistence
 
 import com.liveklass.domain.Enrollment
+import com.liveklass.domain.EnrollmentStatus
 import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -42,4 +43,21 @@ interface EnrollmentRepository : JpaRepository<Enrollment, Long> {
         """
     )
     fun findAllByClass(classId: Long, pageable: Pageable): Page<Enrollment>
+
+    @Query(
+        value = """
+            select e
+            from Enrollment e
+            join fetch e.student
+            where e.enrolledClass.id = :classId
+            and e.enrollmentStatus = :status
+        """,
+        countQuery = """
+            select count(e)
+            from Enrollment e
+            where e.enrolledClass.id = :classId
+            and e.enrollmentStatus = :status
+        """
+    )
+    fun findAllByClassAndStatus(classId: Long, status: EnrollmentStatus, pageable: Pageable): Page<Enrollment>
 }

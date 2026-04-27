@@ -1,6 +1,7 @@
 package com.liveklass.application
 
 import com.liveklass.IntegrationTestSupport
+import com.liveklass.domain.Enrollment
 import com.liveklass.domain.EnrollmentStatus
 import com.liveklass.domain.Member
 import com.liveklass.domain.MemberRole
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.LocalDateTime
 
 @DisplayName("수강 신청 서비스 통합 테스트")
 class EnrollmentServiceTest @Autowired constructor(
@@ -113,34 +115,84 @@ class EnrollmentServiceTest @Autowired constructor(
     }
 
     @Test
-    fun `회원 기준으로 내가 신청한 강의 목록을 조회할 수 있다`() {
-        val firstEnrollment = saveEnrollment("student")
-        val secondClass = classRepository.save(getClassFixture().apply { open() })
-        enrollmentRepository.save(getEnrollmentFixture(secondClass, firstEnrollment.student))
+    fun `회원 기준 조회는 최신순으로 20개까지 수강 신청 목록을 반환한다`() {
+        val student = memberRepository.save(Member.create("student", MemberRole.STUDENT))
+        val baseTime = LocalDateTime.of(2026, 4, 4, 12, 0)
+        val enrollments = (1..22).map { index ->
+            val klass = classRepository.save(getClassFixture().apply { open() })
+            enrollmentRepository.save(Enrollment.create(klass, student, baseTime.plusDays(index.toLong())))
+        }
 
-        val response = sut.findEnrollmentsByMember(firstEnrollment.student.id)
+        val response = sut.findEnrollmentsByMember(student.id)
 
         assertAll(
-            { assertThat(response.responses).hasSize(2) },
-            { assertThat(response.responses.map { it.enrollmentId }).contains(firstEnrollment.id) },
-            { assertThat(response.responses.map { it.classId }).contains(firstEnrollment.enrolledClass.id, secondClass.id) },
-            { assertThat(response.responses).allMatch { it.classTitle.isNotBlank() } }
+            { assertThat(response.responses).hasSize(20) },
+            {
+                assertThat(response.responses.map { it.enrollmentId })
+                    .containsExactlyElementsOf(enrollments.takeLast(20).reversed().map { it.id })
+            },
+            {
+                assertThat(response.responses.map { it.requestedDate })
+                    .containsExactlyElementsOf(enrollments.takeLast(20).reversed().map { it.requestedDate })
+            }
         )
     }
 
     @Test
-    fun `강의 기준으로 수강 신청한 학생 목록을 조회할 수 있다`() {
-        val firstEnrollment = saveEnrollment("student-1")
-        val secondStudent = memberRepository.save(Member.create("student-2", MemberRole.STUDENT))
-        enrollmentRepository.save(getEnrollmentFixture(firstEnrollment.enrolledClass, secondStudent))
+    fun `강의 기준 확정 명단 조회는 최신순으로 20명까지 반환한다`() {
+        val klass = classRepository.save(getClassFixture().apply { open() })
+        val baseTime = LocalDateTime.of(2026, 4, 4, 12, 0)
+        val confirmedEnrollments = (1..22).map { index ->
+            val student = memberRepository.save(Member.create("student-$index", MemberRole.STUDENT))
+            enrollmentRepository.save(
+                Enrollment.create(klass, student, baseTime.plusDays(index.toLong())).apply {
+                    confirm(requestedDate.plusHours(1))
+                }
+            )
+        }
+        enrollmentRepository.save(
+            Enrollment.create(
+                klass,
+                memberRepository.save(Member.create("pending-student", MemberRole.STUDENT)),
+                baseTime.plusDays(23)
+            )
+        )
 
-        val response = sut.findStudentsByClass(firstEnrollment.enrolledClass.id)
+        val response = sut.findStudentsByClass(klass.id)
 
         assertAll(
-            { assertThat(response.responses).hasSize(2) },
-            { assertThat(response.responses.map { it.memberId }).contains(firstEnrollment.student.id, secondStudent.id) },
-            { assertThat(response.responses.map { it.memberName }).contains("student-1", "student-2") },
-            { assertThat(response.responses).allMatch { it.enrollmentStatus == EnrollmentStatus.PENDING } }
+            { assertThat(response.responses).hasSize(20) },
+            {
+                assertThat(response.responses.map { it.enrollmentId })
+                    .containsExactlyElementsOf(confirmedEnrollments.takeLast(20).reversed().map { it.id })
+            },
+            { assertThat(response.responses).allMatch { it.enrollmentStatus == EnrollmentStatus.CONFIRMED } }
+        )
+    }
+
+    @Test
+    fun `강의 기준 전체 수강 신청 조회는 최신순으로 20개까지 반환한다`() {
+        val klass = classRepository.save(getClassFixture().apply { open() })
+        val baseTime = LocalDateTime.of(2026, 4, 4, 12, 0)
+        val enrollments = (1..22).map { index ->
+            val student = memberRepository.save(Member.create("student-$index", MemberRole.STUDENT))
+            enrollmentRepository.save(Enrollment.create(klass, student, baseTime.plusDays(index.toLong())))
+        }
+        enrollments[0].confirm(enrollments[0].requestedDate.plusHours(1))
+        enrollments[1].cancel(enrollments[1].requestedDate.plusHours(1))
+
+        val response = sut.findEnrollmentRequestsByClass(klass.id)
+
+        assertAll(
+            { assertThat(response.responses).hasSize(20) },
+            {
+                assertThat(response.responses.map { it.enrollmentId })
+                    .containsExactlyElementsOf(enrollments.takeLast(20).reversed().map { it.id })
+            },
+            {
+                assertThat(response.responses.map { it.requestedDate })
+                    .containsExactlyElementsOf(enrollments.takeLast(20).reversed().map { it.requestedDate })
+            }
         )
     }
 
